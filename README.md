@@ -10,7 +10,7 @@ stopper deg fra å gå rett fram.
 
 
 Her er programmene jeg bruker for oppgaven:
-Unity
+Unity (6000.3.9f1)
 VSCode (2026)
 Visual Studio
 GitHub

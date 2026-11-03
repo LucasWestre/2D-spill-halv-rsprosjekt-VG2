@@ -14,3 +14,8 @@ Unity (6000.3.9f1)
 VSCode (2026)
 Visual Studio
 GitHub
+
+
+Kildeliste/assets:
+
+https://pixelfrog-assets.itch.io/pixel-adventure-1

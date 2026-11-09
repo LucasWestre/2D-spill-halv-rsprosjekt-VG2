@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem; // Uses the New Input System cleanly
 
 [RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(AudioSource))] // Automatically ensures an AudioSource is attached
 public class PlayerMovement2D : MonoBehaviour
 {
     [Header("Movement Settings")]
@@ -15,6 +16,11 @@ public class PlayerMovement2D : MonoBehaviour
     public float groundCheckRadius = 0.2f;
     public LayerMask groundMask;
 
+    [Header("Audio Settings")]
+    [Tooltip("The sound file that plays when the player jumps.")]
+    public AudioClip jumpSound;
+    private AudioSource audioSource;
+
     private Rigidbody2D rb;
     private float horizontalInput;
     private bool isGrounded;
@@ -24,7 +30,12 @@ public class PlayerMovement2D : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        audioSource = GetComponent<AudioSource>(); // Cache the AudioSource component
         
+        // Configure standard sound settings automatically
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+
         // Prevents the capsule from tipping over sideways when running into walls
         rb.freezeRotation = true; 
         
@@ -64,6 +75,12 @@ public class PlayerMovement2D : MonoBehaviour
     private void Jump()
     {
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+
+        // TRIGGER THE JUMP AUDIO HERE
+        if (audioSource != null && jumpSound != null)
+        {
+            audioSource.PlayOneShot(jumpSound);
+        }
     }
 
     private void Flip()

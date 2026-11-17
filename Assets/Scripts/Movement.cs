@@ -1,14 +1,14 @@
 using UnityEngine;
-using UnityEngine.InputSystem; // Uses the New Input System cleanly
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Rigidbody2D))]
-[RequireComponent(typeof(AudioSource))] // Automatically ensures an AudioSource is attached
+[RequireComponent(typeof(AudioSource))]
 public class PlayerMovement2D : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 8.0f;
-    public float acceleration = 50.0f; // Higher values = faster takeoff
-    public float deceleration = 60.0f; // Higher values = quicker stops
+    public float acceleration = 50.0f;
+    public float deceleration = 60.0f;
     public float jumpForce = 12.0f;
 
     [Header("Ground Check")]
@@ -19,7 +19,13 @@ public class PlayerMovement2D : MonoBehaviour
     [Header("Audio Settings")]
     [Tooltip("The sound file that plays when the player jumps.")]
     public AudioClip jumpSound;
+    [Tooltip("The sound file that plays when the player walks on the ground.")]
+    public AudioClip walkSound;
+    [Tooltip("Time in seconds between each footstep sound.")]
+    public float stepInterval = 0.35f;
+
     private AudioSource audioSource;
+    private float stepTimer;
 
     private Rigidbody2D rb;
     private float horizontalInput;
@@ -30,16 +36,12 @@ public class PlayerMovement2D : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        audioSource = GetComponent<AudioSource>(); // Cache the AudioSource component
+        audioSource = GetComponent<AudioSource>();
         
-        // Configure standard sound settings automatically
         audioSource.playOnAwake = false;
         audioSource.loop = false;
 
-        // Prevents the capsule from tipping over sideways when running into walls
         rb.freezeRotation = true; 
-        
-        // Ensures perfect midair/ground tracking smoothness
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
     }
 
@@ -51,24 +53,46 @@ public class PlayerMovement2D : MonoBehaviour
         // 2. Handle Sprite Flipping based on current movement direction
         if (horizontalInput > 0 && !isFacingRight) Flip();
         else if (horizontalInput < 0 && isFacingRight) Flip();
+
+        // 3. Handle Walking Sound (Only when grounded AND moving)
+        HandleFootsteps();
+    }
+
+    private void HandleFootsteps()
+    {
+        if (isGrounded && Mathf.Abs(horizontalInput) > 0.1f)
+        {
+            stepTimer -= Time.deltaTime;
+
+            if (stepTimer <= 0f)
+            {
+                if (audioSource != null && walkSound != null)
+                {
+                    // Slight pitch variation so footsteps don't sound robotic
+                    audioSource.pitch = Random.Range(0.9f, 1.1f);
+                    audioSource.PlayOneShot(walkSound);
+                }
+                stepTimer = stepInterval; // Reset the timer for the next step
+            }
+        }
+        else
+        {
+            // Reset timer to 0 when stopped or in mid-air so the first step plays immediately upon landing/moving
+            stepTimer = 0f;
+        }
     }
 
     void FixedUpdate()
     {
-        // 3. Calculate target velocity based on input direction (cleared of sticky legacy code)
         float targetHorizontalVelocity = horizontalInput * moveSpeed;
-
-        // 4. Choose between acceleration or braking rates
         float speedRate = (horizontalInput != 0) ? acceleration : deceleration;
 
-        // 5. Smoothly step the current velocity toward the target velocity over time
         currentHorizontalVelocity = Mathf.MoveTowards(
             currentHorizontalVelocity, 
             targetHorizontalVelocity, 
             speedRate * Time.fixedDeltaTime
         );
 
-        // 6. Apply the changes safely to the Rigidbody2D
         rb.linearVelocity = new Vector2(currentHorizontalVelocity, rb.linearVelocity.y);
     }
 
@@ -76,9 +100,9 @@ public class PlayerMovement2D : MonoBehaviour
     {
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
 
-        // TRIGGER THE JUMP AUDIO HERE
         if (audioSource != null && jumpSound != null)
         {
+            audioSource.pitch = 1f; // Reset pitch to normal for the jump sound
             audioSource.PlayOneShot(jumpSound);
         }
     }
@@ -91,8 +115,6 @@ public class PlayerMovement2D : MonoBehaviour
         transform.localScale = currentScale;
     }
 
-    // NEW INPUT SYSTEM CALLBACKS (Triggers automatically via Player Input Component)
-    // When you let go of a key, the New Input System automatically sends a 0 here.
     public void OnMove(InputValue value)
     {
         Vector2 moveVector = value.Get<Vector2>();
